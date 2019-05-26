@@ -2,7 +2,7 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-admin.initializeApp();
+admin.initializeApp(functions.config().firebase);
 
 const express = require('express');
 const cookieParser = require('cookie-parser')();
@@ -35,22 +35,52 @@ const authenticate = async (req, res, next) => {
 app.use(authenticate);
 */
 
+const db = admin.firestore();
+db.settings({ timestampsInSnapshots: true })
+
 app.get('/hello', (req, res) => {
     res.send("hello world");
 });
 
 // GET /api/messages?category={category}
 // Get all messages, optionally specifying a category to filter on
-app.get('/messages', async (req, res) => {
+app.get('/stores', async (req, res) => {
     try {
-        let messages = [{ deneme: "deneme" }];
 
-        res.status(200).json(messages);
+        let collection = await db.collection('stores')
+        if (req.query.category) {
+            collection = db.collection('stores').where('category', '==', req.query.category)
+        }
+        if (req.query.name) {
+            collection = db.collection('stores').where('name', '==', req.query.name)
+        }
+
+        let stores = [];
+        let query = await collection.get()
+        query.forEach(doc => {
+            stores.push({ id: doc.id, data: doc.data() })
+        })
+
+        res.status(200).json(stores);
     } catch (error) {
-        console.log('Error getting messages', error.message);
-        res.sendStatus(500);
+        //console.log('Error getting messages', error.message);
+        res.status(500).json(error.message);
     }
 });
+
+app.post('/stores', async (req, res) => {
+    try {
+        const { name, category, location, finish_date } = req.body;
+        const data = { name, category, location, finish_date }
+        const query = await db.collection('stores').add(data);
+        const store = await query.get();
+
+        res.status(200).json({ id: query.id, data: store.data() });
+    } catch (error) {
+        console.log('Error posting messages', error.message);
+        res.status(500).json(error.message);
+    }
+})
 
 // Expose the API as a function
 exports.api = functions.https.onRequest(app);
