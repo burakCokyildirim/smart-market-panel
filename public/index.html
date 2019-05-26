@@ -93,8 +93,8 @@
       function sendData() {
         let name = document.getElementById("name").value;
         let category = document.getElementById("category").value;
-        let _latitude = parseInt(document.getElementById("lat").value);
-        let _longitude = parseInt(document.getElementById("long").value);
+        let _latitude = parseFloat(document.getElementById("lat").value);
+        let _longitude = parseFloat(document.getElementById("long").value);
         let finish_date = document.getElementById("finishDate").value;
 
         let location = { _latitude, _longitude };
